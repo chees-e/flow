@@ -1,0 +1,5 @@
+# Milestone 1
+
+Our project idea is to create a call graph visualization tool for JavaScript using JavaScript. We will employ D3.js and acornjs/esprima as libraries to help with the parsing and creating the visualization. Our analysis will be a sequence diagram of the functions (static), runtime of each of the functions (dynamic), as well as a possible estimate of the big-O runtime (static). Our target user would be anyone who is familiar with JavaScript development and wants to either find out the call sequence of the code they are working on, or improve the performance of their code using the time complexity analysis. It would be helpful because IDEs typically do not have features such as call graphs or sequence diagrams, as well as time complexity analysis.
+
+We roughly divided up the tasks into frontend and backend tasks. We hope to conduct the prototype user study at some point early next week while we work on the project itself, then complete the task-driven user study next weekend, so we will have time to collect the results and create the video before the due date.

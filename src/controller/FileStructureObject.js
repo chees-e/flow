@@ -1,40 +1,67 @@
 const fs = require('fs');
 const path = require("path");
 const glob = require("glob");
+const esprima = require('esprima');
 
 // https://stackoverflow.com/questions/41462606/get-all-files-recursively-in-directories-nodejs
-var getDirectories = function (src, callback) {
-    glob(src + '/**/*', callback);
+
+let files = [];
+
+const getFilesRecursively = (directory) => {
+    const filesInDirectory = fs.readdirSync(directory);
+    for (const file of filesInDirectory) {
+        const absolute = path.join(directory, file);
+        if (fs.statSync(absolute).isDirectory()) {
+            getFilesRecursively(absolute);
+        } else {
+            files.push(absolute);
+        }
+    }
 };
 
-async function getFileStruc(folder, callback) {
-    let result = [];
-    let level = {result};
-    return getDirectories(folder, function (err, res) {
-        if (err) {
-            console.log('Error', err);
+// Create a nested object from desired folder
+    function getFileStruc(dir) {
+        let result = [];
+        let level = {result};
+        if (fs.lstatSync(dir).isDirectory()) {
+            getFilesRecursively(dir);
         } else {
-            // console.log(res);
+            files.push(dir);
         }
-        // https://stackoverflow.com/questions/57344694/create-a-tree-from-a-list-of-strings-containing-paths-of-files-javascript
-        res.forEach(path => {
-            path.replace(/^(\/)/,"").split('/').reduce((r, name) => {
-                if(!r[name]) {
-                    r[name] = {result: []};
-                    r.result.push({name, children: r[name].result})
+            // https://stackoverflow.com/questions/57344694/create-a-tree-from-a-list-of-strings-containing-paths-of-files-javascript
+            files.forEach(path => {
+                path.replace(/^(\/)/, "").split('/').reduce((r, name) => {
+                    if (!r[name]) {
+                        r[name] = {result: []};
+                        if (name.endsWith(".js")){
+                            r.result.push({name, children: assignFileFunction(path)})
+                        } else{
+                            r.result.push({name, children: r[name].result})
+                        }
+                    }
+                    return r[name];
+                }, level)
+            })
+            console.log(result)
+            // output = result
+            return (result);
+    }
+
+// find .js files in nested object
+    function assignFileFunction(path) {
+        let fxnList = [];
+        let file = fs.readFileSync(path, "utf8");
+        esprima.tokenize('<')
+        let functionArg = esprima.parseScript(file, { tolerant: true });
+        functionArg.body.forEach ( dec => {
+                if (dec.type === "FunctionDeclaration"){
+                    fxnList.push(dec.id.name)
+                    console.log(dec.id.name)
                 }
-                return r[name];
-            }, level)
-        })
-        //console.log(result)
-        // output = result
-        return callback(result);
-    });
-}
+            })
+       return (fxnList)
+    }
 
-// // example usage
-// getFileStruc('../',function(response){
-//     let test = response
-//     console.log(test);
-// })
-
+// example usage
+let res
+res = getFileStruc("../setupTests.js")

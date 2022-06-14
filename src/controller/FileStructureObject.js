@@ -3,6 +3,7 @@ const path = require("path");
 const glob = require("glob");
 const esprima = require('esprima');
 const espree = require('espree');
+const estraverse = require('estraverse')
 
 // https://stackoverflow.com/questions/41462606/get-all-files-recursively-in-directories-nodejs
 let files = [];
@@ -50,12 +51,28 @@ const getFilesRecursively = (directory) => {
     function assignFileFunction(path) {
         let fxnList = [];
         let file = fs.readFileSync(path, "utf8");
-        // esprima.tokenize('<')
-        // let functionArg = espree.parse(file, { tolerant: true , jsx: true});
-        let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module"});
+        let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
         functionArg.body.forEach ( dec => {
+            let callList = [];
                 if (dec.type === "FunctionDeclaration"){
-                    const fxnObject = {fxnId: dec.id.name, body: dec.body}
+                    estraverse.traverse(dec, {
+                        enter: function (node, parent) {
+                            if (node.type == 'CallExpression')
+                                if (node.callee.type === "MemberExpression"){
+                                    if (node.callee.object.hasOwnProperty('name')){
+                                        console.log(node.callee.object.name + '.' +node.callee.property.name)
+                                        callList.push(node.callee.object.name + '.' +node.callee.property.name)
+                                    } else {
+                                        console.log(node.callee.property.name)
+                                        callList.push(node.callee.property.name)
+                                    }
+                                } else {
+                                    console.log(node.callee.name);
+                                    callList.push(node.callee.name)
+                                }
+                        }
+                    });
+                    const fxnObject = {fxnId: dec.id.name, calls: callList}
                     fxnList.push(fxnObject)
                     // console.log(dec.id.name)
                 }
@@ -66,3 +83,4 @@ const getFilesRecursively = (directory) => {
 // example usage
 let res;
 res = getFileStruc("../controller/FileStructureObject.js")
+espree.VisitorKeys

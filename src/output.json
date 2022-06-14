@@ -1,0 +1,49 @@
+{
+  "classes": [
+    {
+      "className": "A",
+      "functions": [
+        {
+          "functionName": "Sum",
+          "caller": "A",
+          "callee": "B",
+          "runtime": 200
+        }
+      ]
+    },
+    {
+      "className": "B",
+      "functions": [
+        {
+          "functionName": "Multiply",
+          "caller": "B",
+          "callee": "C",
+          "runtime": 200
+        },
+        {
+          "functionName": "getProduct",
+          "caller": "B",
+          "callee": "C",
+          "runtime": 250
+        }
+      ]
+    },
+    {
+      "className": "C",
+      "functions": [
+        {
+          "functionName": "Multiply",
+          "caller": "C",
+          "callee": "C",
+          "runtime": 200
+        },
+        {
+          "functionName": "getProduct",
+          "caller": "C",
+          "callee": "C",
+          "runtime": 250
+        }
+      ]
+    }
+  ]
+}

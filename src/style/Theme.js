@@ -1,4 +1,5 @@
 import {createTheme} from "@mui/material";
+import {makeStyles} from "@mui/styles";
 
 
 export const theme = createTheme({
@@ -14,14 +15,11 @@ export const theme = createTheme({
         fontFamily: [
             'Helvetica Neue'
         ],
-        h4: {
-            fontWeight: 600,
-            fontSize: 28,
-            lineHeight: '2rem',
-        },
-        h5: {
-            fontWeight: 100,
-            lineHeight: '2rem',
-        },
     },
 });
+
+export const style = makeStyles({
+    diagram: {
+        marginTop: "10em"
+    }
+})

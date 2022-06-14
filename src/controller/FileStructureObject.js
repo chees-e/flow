@@ -55,7 +55,8 @@ const getFilesRecursively = (directory) => {
         let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module"});
         functionArg.body.forEach ( dec => {
                 if (dec.type === "FunctionDeclaration"){
-                    fxnList.push(dec.id.name)
+                    const fxnObject = {fxnId: dec.id.name, body: dec.body}
+                    fxnList.push(fxnObject)
                     // console.log(dec.id.name)
                 }
             })
@@ -64,4 +65,4 @@ const getFilesRecursively = (directory) => {
 
 // example usage
 let res;
-res = getFileStruc("../")
+res = getFileStruc("../controller/FileStructureObject.js")

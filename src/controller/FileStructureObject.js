@@ -2,11 +2,10 @@ const fs = require('fs');
 const path = require("path");
 const glob = require("glob");
 const esprima = require('esprima');
+const espree = require('espree');
 
 // https://stackoverflow.com/questions/41462606/get-all-files-recursively-in-directories-nodejs
-
 let files = [];
-
 const getFilesRecursively = (directory) => {
     const filesInDirectory = fs.readdirSync(directory);
     for (const file of filesInDirectory) {
@@ -51,17 +50,18 @@ const getFilesRecursively = (directory) => {
     function assignFileFunction(path) {
         let fxnList = [];
         let file = fs.readFileSync(path, "utf8");
-        esprima.tokenize('<')
-        let functionArg = esprima.parseScript(file, { tolerant: true });
+        // esprima.tokenize('<')
+        // let functionArg = espree.parse(file, { tolerant: true , jsx: true});
+        let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module"});
         functionArg.body.forEach ( dec => {
                 if (dec.type === "FunctionDeclaration"){
                     fxnList.push(dec.id.name)
-                    console.log(dec.id.name)
+                    // console.log(dec.id.name)
                 }
             })
        return (fxnList)
     }
 
 // example usage
-let res
-res = getFileStruc("../setupTests.js")
+let res;
+res = getFileStruc("../")

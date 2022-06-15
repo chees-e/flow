@@ -8,6 +8,10 @@ const estraverse = require('estraverse')
 // https://stackoverflow.com/questions/41462606/get-all-files-recursively-in-directories-nodejs
 let files = [];
 const getFilesRecursively = (directory) => {
+    if (directory.includes("node_modules")) {
+        return;
+    }
+
     const filesInDirectory = fs.readdirSync(directory);
     for (const file of filesInDirectory) {
         const absolute = path.join(directory, file);
@@ -28,12 +32,15 @@ const getFilesRecursively = (directory) => {
         } else {
             files.push(dir);
         }
+
+        console.log("FILES" + files.join("\n"))
             // https://stackoverflow.com/questions/57344694/create-a-tree-from-a-list-of-strings-containing-paths-of-files-javascript
             files.forEach(path => {
-                path.replace(/^(\/)/, "").split('/').reduce((r, name) => {
+                path.replace(dir, "root/").replace("//", "/").replace(/^(\/)/, "").split('/').reduce((r, name) => {
                     if (!r[name]) {
                         r[name] = {result: []};
                         if (name.endsWith(".js")){
+                            console.log("entering " + name);
                             r.result.push({name, children: assignFileFunction(path)})
                         } else{
                             r.result.push({name, children: r[name].result})
@@ -55,6 +62,7 @@ const getFilesRecursively = (directory) => {
         functionArg.body.forEach ( dec => {
             let callList = [];
                 if (dec.type === "FunctionDeclaration"){
+                    // TODO: add error handling
                     estraverse.traverse(dec, {
                         enter: function (node, parent) {
                             if (node.type == 'CallExpression')
@@ -82,5 +90,10 @@ const getFilesRecursively = (directory) => {
 
 // example usage
 let res;
-res = getFileStruc("../controller/FileStructureObject.js")
-espree.VisitorKeys
+// res = getFileStruc("/Users/UBC/Programs/UBClhd2019/Learn/nwplus-aws-workshop"); //"../controller/FileStructureObject.js")
+
+res = getFileStruc("../");
+console.log(JSON.stringify(res));
+// espree.VisitorKeys
+
+

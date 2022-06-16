@@ -29,9 +29,10 @@ const getFilesRecursively = (directory) => {
 };
 
 let fxnDec = {};
+let fxnExports = {};
 
 function getAllDec(path) {
-    let fxnList = [];
+    let fileExports = {};
     let file = fs.readFileSync(path, "utf8");
     let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
     functionArg.body.forEach ( dec => {
@@ -51,8 +52,27 @@ function getAllDec(path) {
                     }
                 }
             }
+        } else if (dec.type == "ExpressionStatement" && dec.expression.type == "AssignmentExpression") {
+            if (dec.expression.left.property && dec.expression.left.property.name == "exports") {
+                if (dec.expression.right.type == "ObjectExpression") {
+                    fileExports = {}; // Everything before is now overridden;
+                    for (let i = 0; i < dec.expression.right.properties.length; i++) {
+                        if (dec.expression.right.properties[i].value.name in fxnDec) { // function must be declared before
+                            fileExports[dec.expression.right.properties[i].key.name] = dec.expression.right.properties[i].value.name;
+                        }
+                    }
+                }
+            } else if (dec.expression.left.object && dec.expression.left.object.object && dec.expression.left.object.object.name == "module") {
+                if (dec.expression.left.object.property.name == "exports" && dec.expression.right.type == "Identifier") {
+                    if (dec.expression.right.name in fxnDec) { // function must be declared before
+                        fileExports[dec.expression.left.property.name] = dec.expression.right.name;
+                    }
+                }
+            }
         }
     });
+
+    return fileExports;
 };
 
 
@@ -63,17 +83,18 @@ function getFileStruc(dir) {
     
     getFilesRecursively(dir);
 
-
     // Get all declared functions
     files.forEach(path => {
         if (path.endsWith(".js") && !path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0].startsWith(".")){
             console.log("Finding functions in "+ path);
-            getAllDec(path);
+            fileExports = getAllDec(path);
+            fxnExports[path] = fileExports;
         }
     })
 
     console.log("Declarations: " + JSON.stringify(fxnDec));
-    
+    console.log("Exports: " + JSON.stringify(fxnExports));
+
     // https://stackoverflow.com/questions/57344694/create-a-tree-from-a-list-of-strings-containing-paths-of-files-javascript
     files.forEach(path => {
         path.replace(dir, "root/").replaceAll("\\", "/").replaceAll("//", "/").replace(/^(\/)/, "").split('/').reduce((r, name) => {
@@ -82,7 +103,7 @@ function getFileStruc(dir) {
                 if (name.endsWith(".js") && !path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0].startsWith(".")){
                     console.log("entering " + name);
                     let fileFunctions = assignFileFunction(path);
-                    r.result.push({name, children: fileFunctions[0], calls: fileFunctions[1]});
+                    r.result.push({name, children: fileFunctions[0], calls: fileFunctions[1], exports: fxnExports[path]});
                 } else{
                     // remove the if statement if need to include all files
                     if (!name.includes(".")) {
@@ -165,7 +186,6 @@ console.log("\n\n\n\n\nStarting...")
 // example usage
 let res;
 res = getFileStruc("..\\..\\Shawntesting\\");
-// res = getFileStruc("C:\\Users\\shawn\\Programs\\UBClhd2019\\Learn\\nwplus-aws-workshop\\");
 console.log(JSON.stringify(res));
 // espree.VisitorKeys
 

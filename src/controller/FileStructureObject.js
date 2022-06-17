@@ -28,8 +28,10 @@ const getFilesRecursively = (directory) => {
     }
 };
 
+// TODO: resolving multiple files with the same function names
 let fxnDec = {};
 let fxnExports = {};
+let fileImports = {};
 
 function getAllDec(path) {
     let fileExports = {};
@@ -85,15 +87,13 @@ function getFileStruc(dir) {
 
     // Get all declared functions
     files.forEach(path => {
-        if (path.endsWith(".js") && !path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0].startsWith(".")){
+        let filename = path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0]
+        if (path.endsWith(".js") && !filename.startsWith(".")){
             console.log("Finding functions in "+ path);
             fileExports = getAllDec(path);
-            fxnExports[path] = fileExports;
+            fxnExports[filename] = fileExports;
         }
     })
-
-    console.log("Declarations: " + JSON.stringify(fxnDec));
-    console.log("Exports: " + JSON.stringify(fxnExports));
 
     // https://stackoverflow.com/questions/57344694/create-a-tree-from-a-list-of-strings-containing-paths-of-files-javascript
     files.forEach(path => {
@@ -103,7 +103,7 @@ function getFileStruc(dir) {
                 if (name.endsWith(".js") && !path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0].startsWith(".")){
                     console.log("entering " + name);
                     let fileFunctions = assignFileFunction(path);
-                    r.result.push({name, children: fileFunctions[0], calls: fileFunctions[1], exports: fxnExports[path]});
+                    r.result.push({name, children: fileFunctions[0], calls: fileFunctions[1], exports: fxnExports[name]});
                 } else{
                     // remove the if statement if need to include all files
                     if (!name.includes(".")) {
@@ -119,13 +119,13 @@ function getFileStruc(dir) {
     return (result);
 }
 
-function traverseNode(dec) {
+function traverseNode(dec, path) {
     let callList = [];
-    try {
+    // try {
         estraverse.traverse(dec, {
             enter: function (node, parent) {
                 if (node.type == 'CallExpression') {
-                    if (node.callee.type === "MemberExpression" && node.callee.property.name in fxnDec){
+                    if (node.callee.type === "MemberExpression" && (node.callee.property.name in fxnDec || node.callee.property.name in fileImports)){
                         if (node.callee.object.hasOwnProperty('name')){
                             console.log("Adding " + node.callee.object.name + '.' +node.callee.property.name);
                             callList.push(node.callee.object.name + '.' +node.callee.property.name);
@@ -133,18 +133,31 @@ function traverseNode(dec) {
                             console.log("Adding: " + node.callee.property.name);
                             callList.push(node.callee.property.name);
                         }
-                    } else if (node.callee.name in fxnDec) {
+                    } else if (node.callee.name in fxnDec || node.callee.name in fileImports) {
                         console.log("Adding " + node.callee.name);
                         callList.push(node.callee.name);
+                    } else if (node.callee.name == "require") {
+                        // when you require you don't need to add the .js so ill add it in case if it doesn't
+                        // this may go wrong?
+
+                        //TODO, might need to link the variable declared for this require to the imports 
+                        //since we are using it later.
+                        let filename = node.arguments[0].value.replaceAll("\\", "/").split('/').reverse()[0];
+                        if (!filename.endsWith(".js")) {
+                            filename = filename + ".js";
+                        }
+                        if (filename in fxnExports) {
+                            fileImports = {...fxnExports[filename], ...fileImports};
+                        }
                     }
                     
                 }
             }
         });
-    } catch {
-        console.log("something went wrong at " + JSON.stringify(dec));
-        return [];
-    }
+    // } catch {
+    //     console.log("something went wrong at " + JSON.stringify(dec));
+    //     return [];
+    // }
 
     return callList;
 }
@@ -155,26 +168,31 @@ function assignFileFunction(path) {
     let fxnCalls = [];
     let file = fs.readFileSync(path, "utf8");
     let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
+    console.log("IMPORTS " + JSON.stringify(fileImports))
+    fileImports = {}; // reset imports
     functionArg.body.forEach ( dec => {
         console.log("AST: " + dec.type)
         if (dec.type === "FunctionDeclaration"){
             // TODO: add error handling
             let callList = [];
             
-            callList = traverseNode(dec);
+            callList = traverseNode(dec, path);
             const fxnObject = {fxnId: dec.id.name, calls: callList};
             fxnList.push(fxnObject);
         } else if (dec.type == "VariableDeclaration" ) {
             for (let i = 0; i < dec.declarations.length; i++) {
                 if (dec.declarations[i].init && dec.declarations[i].init.type == "ArrowFunctionExpression") {
-                    let callList = traverseNode(dec.declarations[i]);
+                    let callList = traverseNode(dec.declarations[i], path);
 
                     const fxnObject = {fxnId: dec.declarations[i].id.name, calls: callList};
                     fxnList.push(fxnObject);
+                } else {
+                    // for adding imports
+                    let callList = traverseNode(dec, path);
                 }
             }
         } else {
-            let callList = traverseNode(dec);
+            let callList = traverseNode(dec, path);
             fxnCalls = fxnCalls.concat(callList);
         }
     })
@@ -186,7 +204,9 @@ console.log("\n\n\n\n\nStarting...")
 // example usage
 let res;
 res = getFileStruc("..\\..\\Shawntesting\\");
-console.log(JSON.stringify(res));
+console.log("Declarations: " + JSON.stringify(fxnDec));
+console.log("Exports: " + JSON.stringify(fxnExports));
+console.log("Results: " + JSON.stringify(res));
 // espree.VisitorKeys
 
 

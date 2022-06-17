@@ -152,19 +152,20 @@ function findForLoop(dec) {
 
                     node.body.forEach( children => {
                         if (children.type === 'ExpressionStatement') {
-                            if (children.expression.type === 'CallExpression'){
+                            let expression = children.expression;
+                            if (expression.type === 'CallExpression'){
                                 // TODO fix fxn dec later
-                                if (children.expression.callee.type === "MemberExpression" && children.expression.callee.property.name in fxnDec){
-                                    if (children.expression.callee.object.hasOwnProperty('name')){
-                                        console.log("Adding " + children.expression.callee.object.name + '.' +children.expression.callee.property.name);
-                                        callsChildrenList.push(children.expression.callee.object.name + '.' +children.expression.callee.property.name);
+                                if (expression.callee.type === "MemberExpression" && expression.callee.property.name in fxnDec){
+                                    if (expression.callee.object.hasOwnProperty('name')){
+                                        console.log("Adding " + expression.callee.object.name + '.' +expression.callee.property.name);
+                                        callsChildrenList.push(expression.callee.object.name + '.' +expression.callee.property.name);
                                     } else {
-                                        console.log("Adding: " + children.expression.callee.property.name);
-                                        callsChildrenList.push(children.expression.callee.property.name);
+                                        console.log("Adding: " + expression.callee.property.name);
+                                        callsChildrenList.push(expression.callee.property.name);
                                     }
-                                } else if (children.expression.callee.name in fxnDec) {
-                                    console.log("Adding " + children.expression.callee.name);
-                                    callsChildrenList.push(children.expression.callee.name);
+                                } else if (expression.callee.name in fxnDec) {
+                                    console.log("Adding " + expression.callee.name);
+                                    callsChildrenList.push(expression.callee.name);
                                 }
                             }
                         }
@@ -296,11 +297,16 @@ function assignFileFunction(path) {
     return [fxnList, fxnCalls, fxnLoops];
 }
 
+module.exports = {
+    getFileStruc,
+    fxnExports
+}
+
 console.log("\n\n\n\n\nStarting...")
 
 // example usage
 let res;
-res = getFileStruc("..\\..\\Shawntesting\\");
+res = getFileStruc("../../Shawntesting/");
 console.log("Declarations: " + JSON.stringify(fxnDec));
 console.log("Exports: " + JSON.stringify(fxnExports));
 console.log("Results: " + JSON.stringify(res));

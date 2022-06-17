@@ -1,26 +1,31 @@
-import React, {useState} from "react";
+import React from "react";
 import {Divider, Stack} from "@mui/material";
 import {style} from "../style/Theme";
 import {MermaidDiagram} from "./MermaidDiagram";
 import {UploadButton} from "./UploadButton";
 import {DirectoryInput} from "./DirectoryInput";
+import mermaid from "mermaid";
 
 const placeHolderGraphData = "flowchart TD;id1(Enter a path to get started)";
 const placeHolderProcessedGraphData = "flowchart TD;A[Start] --> B{getName};B -->|sum| C[D];C --> D[calc];D --> B;B ---->|F| E[End]";
-let graphData = placeHolderGraphData;
+let diagramData = placeHolderGraphData;
 
 export const DiagramPage = () => {
-    const [hasUploaded ,setHasUploaded] = useState(false);
-    const [isSuccess, setIsSuccess] = useState(true);
     const classes = style();
 
     function onUpload() {
         const input = document.getElementById("directory-input").value;
         console.log(input);
-        setHasUploaded(!hasUploaded);
         // todo: add backend logic to process the input
-        graphData = placeHolderProcessedGraphData;
-        const graph = document.getElementById("top-diagram");
+        diagramData = placeHolderProcessedGraphData;
+
+        // replace the graphs
+        const topDiagram = document.getElementById("diagram");
+        let replaceDiagram = function (data) {
+            topDiagram.innerHTML = data;
+        };
+
+        mermaid.render("preparedScheme", diagramData, replaceDiagram);
     }
 
     return (
@@ -40,13 +45,8 @@ export const DiagramPage = () => {
                 </Stack>
             </Stack>
             <Stack item>
-                <div id={"top-diagram"}>
-                    <MermaidDiagram chart={graphData}/>
-                </div>
-            </Stack>
-            <Stack item>
-                <div id={"bottom-diagram"}>
-                    <MermaidDiagram chart={graphData}/>
+                <div id={"diagram"}>
+                    <MermaidDiagram chart={diagramData}/>
                 </div>
             </Stack>
         </Stack>

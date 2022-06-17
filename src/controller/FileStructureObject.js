@@ -247,6 +247,7 @@ function traverseNode(dec, path) {
         return [];
     }
 
+    console.log("CALLIST  " + JSON.stringify(callList));
     return callList;
 }
 
@@ -281,6 +282,8 @@ function assignFileFunction(path) {
                 } else {
                     // for adding imports
                     let callList = traverseNode(dec, path);
+                    // function calls could be part of Variable declaration
+                    fxnCalls = fxnCalls.concat(callList);
                 }
             }
         } else {

@@ -98,6 +98,55 @@ function getFileStruc(dir) {
     return (result);
 }
 
+function findForLoop(dec) {
+    let callList = [];
+    let nestedCounter = 0;
+    let callsChildrenList = [];
+    try {
+        estraverse.traverse(dec, {
+            enter: function (node, parent) {
+                if (node.type === 'BlockStatement' && parent.type === 'ForStatement') {
+                    let typeChildrenList = [];
+
+                    node.body.forEach( children => {
+                        if (children.type === 'ExpressionStatement') {
+                            if (children.expression.type === 'CallExpression'){
+                                if (children.expression.callee.type === "MemberExpression" && children.expression.callee.property.name in fxnDec){
+                                    if (children.expression.callee.object.hasOwnProperty('name')){
+                                        console.log("Adding " + children.expression.callee.object.name + '.' +children.expression.callee.property.name);
+                                        callsChildrenList.push(children.expression.callee.object.name + '.' +children.expression.callee.property.name);
+                                    } else {
+                                        console.log("Adding: " + children.expression.callee.property.name);
+                                        callsChildrenList.push(children.expression.callee.property.name);
+                                    }
+                                } else if (children.expression.callee.name in fxnDec) {
+                                    console.log("Adding " + children.expression.callee.name);
+                                    callsChildrenList.push(children.expression.callee.name);
+                                }
+                            }
+                        }
+                        typeChildrenList.push(children.type)
+                    })
+                    if (typeChildrenList.includes('ForStatement')){
+                        nestedCounter+=1;
+                        console.log(typeChildrenList)
+                    } else {
+                        console.log('inner loop:' + nestedCounter + '; calls:' + callsChildrenList)
+                        callList.push({innerLoops: nestedCounter, callsInLoop: callsChildrenList})
+                        callsChildrenList = [];
+                        nestedCounter=0;
+                    }
+                    typeChildrenList = [];
+                }
+            }
+        });
+    } catch {
+        console.log("something went wrong at " + JSON.stringify(dec));
+        return [];
+    }
+    return callList;
+}
+
 function traverseNode(dec) {
     let callList = [];
     try {
@@ -116,7 +165,6 @@ function traverseNode(dec) {
                         console.log("Adding " + node.callee.name);
                         callList.push(node.callee.name);
                     }
-                    
                 }
             }
         });
@@ -132,6 +180,7 @@ function traverseNode(dec) {
 function assignFileFunction(path) {
     let fxnList = [];
     let fxnCalls = [];
+    let fxnLoops = [];
     let file = fs.readFileSync(path, "utf8");
     let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
     functionArg.body.forEach ( dec => {
@@ -139,32 +188,37 @@ function assignFileFunction(path) {
         if (dec.type === "FunctionDeclaration"){
             // TODO: add error handling
             let callList = [];
-            
+            let loopList = [];
+
             callList = traverseNode(dec);
-            const fxnObject = {fxnId: dec.id.name, calls: callList};
+            loopList = findForLoop(dec);
+            const fxnObject = {fxnId: dec.id.name, calls: callList, loops: loopList};
             fxnList.push(fxnObject);
         } else if (dec.type == "VariableDeclaration" ) {
             for (let i = 0; i < dec.declarations.length; i++) {
                 if (dec.declarations[i].init && dec.declarations[i].init.type == "ArrowFunctionExpression") {
                     let callList = traverseNode(dec.declarations[i]);
+                    let loopList = findForLoop(dec.declarations[i]);
 
-                    const fxnObject = {fxnId: dec.declarations[i].id.name, calls: callList};
+                    const fxnObject = {fxnId: dec.declarations[i].id.name, calls: callList, loops: loopList};
                     fxnList.push(fxnObject);
                 }
             }
         } else {
             let callList = traverseNode(dec);
+            let loopList = findForLoop(dec);
             fxnCalls = fxnCalls.concat(callList);
+            fxnLoops = fxnLoops.concat(loopList)
         }
     })
-    return [fxnList, fxnCalls];
+    return [fxnList, fxnCalls, fxnLoops];
 }
 
 console.log("\n\n\n\n\nStarting...")
 
 // example usage
 let res;
-res = getFileStruc("..\\..\\Shawntesting\\");
+res = getFileStruc("../john_test/");
 // res = getFileStruc("C:\\Users\\shawn\\Programs\\UBClhd2019\\Learn\\nwplus-aws-workshop\\");
 console.log(JSON.stringify(res));
 // espree.VisitorKeys

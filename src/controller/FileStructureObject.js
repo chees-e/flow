@@ -29,9 +29,17 @@ const getFilesRecursively = (directory) => {
 };
 
 // TODO: resolving multiple files with the same function names
+// UPDATE:
+/* fxnDec and fileExports values and fileImports values will all store in the format: filename.js:fxnname
+fxnExports and fileImports keys are still just the alias name
+*/
 let fxnDec = {};
 let fxnExports = {};
 let fileImports = {};
+
+function getFileName(path) {
+    return path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0];
+}
 
 function getAllDec(path) {
     let fileExports = {};
@@ -39,35 +47,48 @@ function getAllDec(path) {
     let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
     functionArg.body.forEach ( dec => {
         if (dec.type === "FunctionDeclaration"){
-            if (dec.id && dec.id.name in fxnDec) {
-                fxnDec[dec.id.name]["sources"].push(file);
-            } else {
-                fxnDec[dec.id.name] = {"sources": [path]};
-            }
+            // if (dec.id && dec.id.name in fxnDec) {
+            //     fxnDec[dec.id.name]["sources"].push(file);
+            // } else {
+            //     fxnDec[dec.id.name] = {"sources": [path]};
+            // }
+
+            let decName = getFileName(path) + ":" + dec.id.name;
+            fxnDec[decName] = path; // don't really need the path? but placeholder in case if we need something
         } else if (dec.type == "VariableDeclaration") {
             for (let i = 0; i < dec.declarations.length; i++) {
                 if (dec.declarations[i].init && dec.declarations[i].init.type == "ArrowFunctionExpression") {
-                    if (dec.declarations[i].id && dec.declarations[i].id.name in fxnDec) {
-                        fxnDec[dec.declarations[i].id.name]["sources"].push(file);
-                    } else if (dec.declarations[i].id) {
-                        fxnDec[dec.declarations[i].id.name] = {"sources": [path]};
+                    // if (dec.declarations[i].id && dec.declarations[i].id.name in fxnDec) {
+                    //     fxnDec[dec.declarations[i].id.name]["sources"].push(file);
+                    // } else if (dec.declarations[i].id) {
+                    //     fxnDec[dec.declarations[i].id.name] = {"sources": [path]};
+                    // }
+                    if (dec.declarations[i].id) {
+                        let decName = getFileName(path) + ":" + dec.declarations[i].id.name;
+                        fxnDec[decName] = path;
                     }
                 }
             }
         } else if (dec.type == "ExpressionStatement" && dec.expression.type == "AssignmentExpression") {
             if (dec.expression.left.property && dec.expression.left.property.name == "exports") {
+                console.log("EXPORT 1")
                 if (dec.expression.right.type == "ObjectExpression") {
                     fileExports = {}; // Everything before is now overridden;
                     for (let i = 0; i < dec.expression.right.properties.length; i++) {
-                        if (dec.expression.right.properties[i].value.name in fxnDec) { // function must be declared before
-                            fileExports[dec.expression.right.properties[i].key.name] = dec.expression.right.properties[i].value.name;
+                        let decName = getFileName(path) + ":" + dec.expression.right.properties[i].value.name;
+
+                        if (decName in fxnDec) { // function must be declared before
+                            fileExports[dec.expression.right.properties[i].key.name] = decName;
                         }
                     }
                 }
             } else if (dec.expression.left.object && dec.expression.left.object.object && dec.expression.left.object.object.name == "module") {
+                console.log("EXPORT 2")
+
                 if (dec.expression.left.object.property.name == "exports" && dec.expression.right.type == "Identifier") {
-                    if (dec.expression.right.name in fxnDec) { // function must be declared before
-                        fileExports[dec.expression.left.property.name] = dec.expression.right.name;
+                    let decName = getFileName(path) + ":" + dec.expression.right.name;
+                    if (decName in fxnDec) { // function must be declared before
+                        fileExports[dec.expression.left.property.name] = decName;
                     }
                 }
             }
@@ -87,7 +108,7 @@ function getFileStruc(dir) {
 
     // Get all declared functions
     files.forEach(path => {
-        let filename = path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0]
+        let filename = getFileName(path);
         if (path.endsWith(".js") && !filename.startsWith(".")){
             console.log("Finding functions in "+ path);
             fileExports = getAllDec(path);
@@ -100,7 +121,7 @@ function getFileStruc(dir) {
         path.replace(dir, "root/").replaceAll("\\", "/").replaceAll("//", "/").replace(/^(\/)/, "").split('/').reduce((r, name) => {
             if (!r[name]) {
                 r[name] = {result: []};
-                if (name.endsWith(".js") && !path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0].startsWith(".")){
+                if (name.endsWith(".js") && !getFileName(path).startsWith(".")){
                     console.log("entering " + name);
                     let fileFunctions = assignFileFunction(path);
                     r.result.push({name, children: fileFunctions[0], calls: fileFunctions[1], exports: fxnExports[name]});
@@ -132,6 +153,7 @@ function findForLoop(dec) {
                     node.body.forEach( children => {
                         if (children.type === 'ExpressionStatement') {
                             if (children.expression.type === 'CallExpression'){
+                                // TODO fix fxn dec later
                                 if (children.expression.callee.type === "MemberExpression" && children.expression.callee.property.name in fxnDec){
                                     if (children.expression.callee.object.hasOwnProperty('name')){
                                         console.log("Adding " + children.expression.callee.object.name + '.' +children.expression.callee.property.name);
@@ -168,24 +190,14 @@ function findForLoop(dec) {
     return callList;
 }
 
-function traverseNode(dec) {
+// TODO: Note: added path
+function traverseNode(dec, path) {
     let callList = [];
-    // try {
+    try {
         estraverse.traverse(dec, {
             enter: function (node, parent) {
                 if (node.type == 'CallExpression') {
-                    if (node.callee.type === "MemberExpression" && (node.callee.property.name in fxnDec || node.callee.property.name in fileImports)){
-                        if (node.callee.object.hasOwnProperty('name')){
-                            console.log("Adding " + node.callee.object.name + '.' +node.callee.property.name);
-                            callList.push(node.callee.object.name + '.' +node.callee.property.name);
-                        } else {
-                            console.log("Adding: " + node.callee.property.name);
-                            callList.push(node.callee.property.name);
-                        }
-                    } else if (node.callee.name in fxnDec || node.callee.name in fileImports) {
-                        console.log("Adding " + node.callee.name);
-                        callList.push(node.callee.name);
-                    } else if (node.callee.name == "require") {
+                    if (node.callee.name == "require") {
                         // when you require you don't need to add the .js so ill add it in case if it doesn't
                         // this may go wrong?
 
@@ -198,14 +210,42 @@ function traverseNode(dec) {
                         if (filename in fxnExports) {
                             fileImports = {...fxnExports[filename], ...fileImports};
                         }
-                    }
+                    } else if (node.callee.type === "MemberExpression" && (node.callee.property.name in fxnDec || node.callee.property.name in fileImports)){
+                        let callName = getFileName(path) + ":" + node.callee.property.name;
+
+                        if (callName in fxnDec) {
+                            // if (node.callee.object.hasOwnProperty('name')){
+                            //     console.log("Adding " + node.callee.object.name + '.' +node.callee.property.name);
+                            //     callList.push(node.callee.object.name + '.' +node.callee.property.name);
+                            // } else {
+                            //     console.log("Adding: " + node.callee.property.name);
+                            //     callList.push(node.callee.property.name);
+                            // }
+                            console.log("Adding: " + callName);
+                            callList.push(callName);
+                        } else if (node.callee.property.name in fileImports) {
+                            callName = fileImports[node.callee.property.name];
+                            console.log("Adding: " + callName);
+                            callList.push(callName);           
+                        }
+                    } else {
+                        let callName = getFileName(path) + ":" + node.callee.name;
+                        if (callName in fxnDec) {
+                            console.log("Adding " + callName);
+                            callList.push(callName);
+                        } else if (node.callee.name in fileImports) {
+                            callName = fileImports[node.callee.name];
+                            console.log("Adding " + callName);
+                            callList.push(callName);
+                        }
+                    } 
                 }
             }
         });
-    // } catch {
-    //     console.log("something went wrong at " + JSON.stringify(dec));
-    //     return [];
-    // }
+    } catch {
+        console.log("something went wrong at " + JSON.stringify(dec));
+        return [];
+    }
 
     return callList;
 }
@@ -226,7 +266,7 @@ function assignFileFunction(path) {
             let callList = [];
             let loopList = [];
 
-            callList = traverseNode(dec);
+            callList = traverseNode(dec, path);
             loopList = findForLoop(dec);
             const fxnObject = {fxnId: dec.id.name, calls: callList, loops: loopList};
             fxnList.push(fxnObject);
@@ -244,7 +284,7 @@ function assignFileFunction(path) {
                 }
             }
         } else {
-            let callList = traverseNode(dec);
+            let callList = traverseNode(dec, path);
             let loopList = findForLoop(dec);
             fxnCalls = fxnCalls.concat(callList);
             fxnLoops = fxnLoops.concat(loopList)
@@ -263,5 +303,4 @@ console.log("Exports: " + JSON.stringify(fxnExports));
 console.log("Results: " + JSON.stringify(res));
 
 // espree.VisitorKeys
-
 

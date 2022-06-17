@@ -103,6 +103,7 @@ function getAllDec(path) {
 function getFileStruc(dir) {
     let result = [];
     let level = {result};
+    let flattened_result = [];
     
     getFilesRecursively(dir);
 
@@ -124,6 +125,7 @@ function getFileStruc(dir) {
                 if (name.endsWith(".js") && !getFileName(path).startsWith(".")){
                     console.log("entering " + name);
                     let fileFunctions = assignFileFunction(path);
+                    flattened_result.push({name, children: fileFunctions[0], calls: fileFunctions[1], exports: fxnExports[name]});
                     r.result.push({name, children: fileFunctions[0], calls: fileFunctions[1], exports: fxnExports[name]});
                 } else{
                     // remove the if statement if need to include all files
@@ -135,9 +137,9 @@ function getFileStruc(dir) {
             return r[name];
         }, level)
     })
-    console.log(result)
+    // console.log(flattened_result)
     // output = result
-    return (result);
+    return (flattened_result);
 }
 
 function findForLoop(dec) {
@@ -210,7 +212,7 @@ function traverseNode(dec, path) {
                         if (filename in fxnExports) {
                             fileImports = {...fxnExports[filename], ...fileImports};
                         }
-                    } else if (node.callee.type === "MemberExpression" && (node.callee.property.name in fxnDec || node.callee.property.name in fileImports)){
+                    } else if (node.callee.type === "MemberExpression"){
                         let callName = getFileName(path) + ":" + node.callee.property.name;
 
                         if (callName in fxnDec) {
@@ -221,21 +223,22 @@ function traverseNode(dec, path) {
                             //     console.log("Adding: " + node.callee.property.name);
                             //     callList.push(node.callee.property.name);
                             // }
-                            console.log("Adding: " + callName);
+                            console.log("Adding1: " + callName);
                             callList.push(callName);
-                        } else if (node.callee.property.name in fileImports) {
+                        // Making sure there are imports
+                        } else if (Object.keys(fileImports).length && node.callee.property.name in fileImports) {
                             callName = fileImports[node.callee.property.name];
-                            console.log("Adding: " + callName);
+                            console.log("Adding2: " + callName);
                             callList.push(callName);           
                         }
                     } else {
                         let callName = getFileName(path) + ":" + node.callee.name;
                         if (callName in fxnDec) {
-                            console.log("Adding " + callName);
+                            console.log("Adding3: " + callName);
                             callList.push(callName);
-                        } else if (node.callee.name in fileImports) {
+                        } else if (Object.keys(fileImports).length && node.callee.name in fileImports) {
                             callName = fileImports[node.callee.name];
-                            console.log("Adding " + callName);
+                            console.log("Adding4: " + callName);
                             callList.push(callName);
                         }
                     } 
@@ -247,7 +250,6 @@ function traverseNode(dec, path) {
         return [];
     }
 
-    console.log("CALLIST  " + JSON.stringify(callList));
     return callList;
 }
 
@@ -296,14 +298,67 @@ function assignFileFunction(path) {
     return [fxnList, fxnCalls, fxnLoops];
 }
 
+// Uses flattened result
+function parseToMermaid(result) {
+    let out = "flowchart LR;";
+
+    // Creating subgraphs and calls within each file
+    for (let i = 0; i < result.length; i++) {
+        let filename = result[i]["name"];
+
+        out += `subgraph ${filename};`;
+
+        for (let j = 0; j < result[i]["children"].length; j++) {
+            let fxnId = `${filename}:${result[i]["children"][j]["fxnId"]}`
+            out += fxnId + ";";
+            for (let k = 0; k < result[i]["children"][j]["calls"].length; k++) {
+                console.log(result[i]["children"][j]["calls"][k])
+                let callname = result[i]["children"][j]["calls"][k];
+                if (callname.split(":")[0] == filename) { // belongs under the same graph
+                    out += `${fxnId} --> ${callname};`; 
+                }
+            }
+        }
+        out += "end;"
+    }
+
+    // Creating connections between subgraphs
+    for (let i = 0; i < result.length; i++) {
+        let filename = result[i]["name"];
+
+        for (let j = 0; j < result[i]["children"].length; j++) {
+            let fxnId = `${filename}:${result[i]["children"][j]["fxnId"]}`
+            for (let k = 0; k < result[i]["children"][j]["calls"].length; k++) {
+                let callname = result[i]["children"][j]["calls"][k];
+                if (callname.split(":")[0] != filename) { // belongs under the same graph
+                    out += `${fxnId} --> ${callname};`; 
+                }
+            }
+        }
+
+        for (let j = 0; j < result[i]["calls"].length; j++) {
+            let callname = result[i]["calls"][j];
+            out += `${filename} --> ${callname};`; 
+        }
+    }
+
+    return out;
+} 
+
 console.log("\n\n\n\n\nStarting...")
 
 // example usage
 let res;
-res = getFileStruc("..\\..\\Shawntesting\\");
+res = getFileStruc("..\\") //..\\Shawntesting\\");
 console.log("Declarations: " + JSON.stringify(fxnDec));
 console.log("Exports: " + JSON.stringify(fxnExports));
 console.log("Results: " + JSON.stringify(res));
+console.log("Mermaid: " + parseToMermaid(res));
 
 // espree.VisitorKeys
+
+module.exports = {
+    getFileStruc: getFileStruc,
+    parseToMermaid: parseToMermaid
+};
 

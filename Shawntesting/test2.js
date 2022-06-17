@@ -3,6 +3,8 @@ function func(a) {
 
 }
 
+//forbidden: imports
+
 // forbidden: exporting arrow function
 module.exports.func2 = () => {
     console.log("test");

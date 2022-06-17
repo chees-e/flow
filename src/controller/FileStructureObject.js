@@ -1,9 +1,10 @@
-const fs = require('fs');
-const path = require("path");
-const glob = require("glob");
-const esprima = require('esprima');
 const espree = require('espree');
 const estraverse = require('estraverse');
+// const glob = require("glob");
+// const esprima = require('esprima');
+
+const fs = require('fs');
+const path = require("path");
 
 // https://stackoverflow.com/questions/41462606/get-all-files-recursively-in-directories-nodejs
 let files = [];
@@ -28,6 +29,10 @@ const getFilesRecursively = (directory) => {
     }
 };
 
+const readFile = (path) => {
+    return fs.readFileSync(path, "utf8");
+};
+
 // TODO: resolving multiple files with the same function names
 // UPDATE:
 /* fxnDec and fileExports values and fileImports values will all store in the format: filename.js:fxnname
@@ -38,12 +43,12 @@ let fxnExports = {};
 let fileImports = {};
 
 function getFileName(path) {
-    return path.replaceAll("\\", "/").replace(/^(\/)/, "").split('/').reverse()[0];
-}
+    return path.replaceAll("\\", "/").split("/").reverse()[0];
+};
 
 function getAllDec(path) {
     let fileExports = {};
-    let file = fs.readFileSync(path, "utf8");
+    let file = readFile(path);
     let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
     functionArg.body.forEach ( dec => {
         if (dec.type === "FunctionDeclaration"){
@@ -55,9 +60,9 @@ function getAllDec(path) {
 
             let decName = getFileName(path) + ":" + dec.id.name;
             fxnDec[decName] = path; // don't really need the path? but placeholder in case if we need something
-        } else if (dec.type == "VariableDeclaration") {
+        } else if (dec.type === "VariableDeclaration") {
             for (let i = 0; i < dec.declarations.length; i++) {
-                if (dec.declarations[i].init && dec.declarations[i].init.type == "ArrowFunctionExpression") {
+                if (dec.declarations[i].init && dec.declarations[i].init.type === "ArrowFunctionExpression") {
                     // if (dec.declarations[i].id && dec.declarations[i].id.name in fxnDec) {
                     //     fxnDec[dec.declarations[i].id.name]["sources"].push(file);
                     // } else if (dec.declarations[i].id) {
@@ -69,10 +74,10 @@ function getAllDec(path) {
                     }
                 }
             }
-        } else if (dec.type == "ExpressionStatement" && dec.expression.type == "AssignmentExpression") {
-            if (dec.expression.left.property && dec.expression.left.property.name == "exports") {
+        } else if (dec.type === "ExpressionStatement" && dec.expression.type === "AssignmentExpression") {
+            if (dec.expression.left.property && dec.expression.left.property.name === "exports") {
                 console.log("EXPORT 1")
-                if (dec.expression.right.type == "ObjectExpression") {
+                if (dec.expression.right.type === "ObjectExpression") {
                     fileExports = {}; // Everything before is now overridden;
                     for (let i = 0; i < dec.expression.right.properties.length; i++) {
                         let decName = getFileName(path) + ":" + dec.expression.right.properties[i].value.name;
@@ -82,10 +87,10 @@ function getAllDec(path) {
                         }
                     }
                 }
-            } else if (dec.expression.left.object && dec.expression.left.object.object && dec.expression.left.object.object.name == "module") {
+            } else if (dec.expression.left.object && dec.expression.left.object.object && dec.expression.left.object.object.name === "module") {
                 console.log("EXPORT 2")
 
-                if (dec.expression.left.object.property.name == "exports" && dec.expression.right.type == "Identifier") {
+                if (dec.expression.left.object.property.name === "exports" && dec.expression.right.type === "Identifier") {
                     let decName = getFileName(path) + ":" + dec.expression.right.name;
                     if (decName in fxnDec) { // function must be declared before
                         fileExports[dec.expression.left.property.name] = decName;
@@ -112,14 +117,14 @@ function getFileStruc(dir) {
         let filename = getFileName(path);
         if (path.endsWith(".js") && !filename.startsWith(".")){
             console.log("Finding functions in "+ path);
-            fileExports = getAllDec(path);
+            let fileExports = getAllDec(path);
             fxnExports[filename] = fileExports;
         }
     })
 
     // https://stackoverflow.com/questions/57344694/create-a-tree-from-a-list-of-strings-containing-paths-of-files-javascript
     files.forEach(path => {
-        path.replace(dir, "root/").replaceAll("\\", "/").replaceAll("//", "/").replace(/^(\/)/, "").split('/').reduce((r, name) => {
+        path.replace(dir, "root/").replaceAll("\\", "/").replaceAll("//", "/").split('/').reduce((r, name) => {
             if (!r[name]) {
                 r[name] = {result: []};
                 if (name.endsWith(".js") && !getFileName(path).startsWith(".")){
@@ -201,8 +206,8 @@ function traverseNode(dec, path) {
     try {
         estraverse.traverse(dec, {
             enter: function (node, parent) {
-                if (node.type == 'CallExpression') {
-                    if (node.callee.name == "require") {
+                if (node.type === 'CallExpression') {
+                    if (node.callee.name === "require") {
                         // when you require you don't need to add the .js so ill add it in case if it doesn't
                         // this may go wrong?
 
@@ -261,7 +266,7 @@ function assignFileFunction(path) {
     let fxnList = [];
     let fxnCalls = [];
     let fxnLoops = [];
-    let file = fs.readFileSync(path, "utf8");
+    let file = readFile(path);
     let functionArg = espree.parse(file, {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
     console.log("IMPORTS " + JSON.stringify(fileImports))
     fileImports = {}; // reset imports
@@ -276,9 +281,9 @@ function assignFileFunction(path) {
             loopList = findForLoop(dec, path);
             const fxnObject = {fxnId: dec.id.name, calls: callList, loops: loopList};
             fxnList.push(fxnObject);
-        } else if (dec.type == "VariableDeclaration" ) {
+        } else if (dec.type === "VariableDeclaration" ) {
             for (let i = 0; i < dec.declarations.length; i++) {
-                if (dec.declarations[i].init && dec.declarations[i].init.type == "ArrowFunctionExpression") {
+                if (dec.declarations[i].init && dec.declarations[i].init.type === "ArrowFunctionExpression") {
                     let callList = traverseNode(dec.declarations[i], path);
                     let loopList = findForLoop(dec.declarations[i], path);
 
@@ -309,16 +314,16 @@ function parseToMermaid(result) {
     for (let i = 0; i < result.length; i++) {
         let filename = result[i]["name"];
 
-        out += `subgraph ${filename};`;
+        out += "subgraph " + filename + ";";
 
         for (let j = 0; j < result[i]["children"].length; j++) {
-            let fxnId = `${filename}:${result[i]["children"][j]["fxnId"]}`
+            let fxnId = filename + ":" + result[i]["children"][j]["fxnId"];
             out += fxnId + ";";
             for (let k = 0; k < result[i]["children"][j]["calls"].length; k++) {
                 console.log(result[i]["children"][j]["calls"][k])
                 let callname = result[i]["children"][j]["calls"][k];
-                if (callname.split(":")[0] == filename) { // belongs under the same graph
-                    out += `${fxnId} --> ${callname};`; 
+                if (callname.split(":")[0] === filename) { // belongs under the same graph
+                    out += fxnId + " --> " + callname + ";"; 
                 }
             }
         }
@@ -330,34 +335,34 @@ function parseToMermaid(result) {
         let filename = result[i]["name"];
 
         for (let j = 0; j < result[i]["children"].length; j++) {
-            let fxnId = `${filename}:${result[i]["children"][j]["fxnId"]}`
+            let fxnId = filename + ":" + result[i]["children"][j]["fxnId"];
             for (let k = 0; k < result[i]["children"][j]["calls"].length; k++) {
                 let callname = result[i]["children"][j]["calls"][k];
-                if (callname.split(":")[0] != filename) { // belongs under the same graph
-                    out += `${fxnId} --> ${callname};`; 
+                if (callname.split(":")[0] !== filename) { // belongs under the same graph
+                    out += fxnId + " --> " + callname + ";"; 
                 }
             }
         }
 
         for (let j = 0; j < result[i]["calls"].length; j++) {
             let callname = result[i]["calls"][j];
-            out += `${filename} --> ${callname};`; 
+            out += filename + " --> " + callname + ";"; 
         }
     }
 
     return out;
 } 
 
-console.log("\n\n\n\n\nStarting...")
+// console.log("\n\n\n\n\nStarting...")
 
-// example usage
-let res;
+// // example usage
+// let res;
 
-res = getFileStruc("../../Shawntesting/");
-console.log("Declarations: " + JSON.stringify(fxnDec));
-console.log("Exports: " + JSON.stringify(fxnExports));
-console.log("Results: " + JSON.stringify(res));
-console.log("Mermaid: " + parseToMermaid(res));
+// res = getFileStruc("..\\..\\Shawntesting\\");
+// console.log("Declarations: " + JSON.stringify(fxnDec));
+// console.log("Exports: " + JSON.stringify(fxnExports));
+// console.log("Results: " + JSON.stringify(res));
+// console.log("Mermaid: " + parseToMermaid(res));
 
 // espree.VisitorKeys
 
@@ -365,4 +370,3 @@ module.exports = {
     getFileStruc: getFileStruc,
     parseToMermaid: parseToMermaid
 };
-

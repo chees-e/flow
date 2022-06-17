@@ -6,8 +6,12 @@ import {UploadButton} from "./UploadButton";
 import {DirectoryInput} from "./DirectoryInput";
 import mermaid from "mermaid";
 
+
+// fs doesn't work with react
+// const {getFileStruc, parseToMermaid} = require("../controller/FileStructureObject.js");
+
 const placeHolderGraphData = "flowchart TD;id1(Enter a path to get started)";
-const placeHolderProcessedGraphData = "flowchart TD;A[Start] --> B{getName};B -->|sum| C[D];C --> D[calc];D --> B;B ---->|F| E[End]";
+const placeHolderProcessedGraphData = "flowchart LR;subgraph esp.js;end;subgraph test.js;test.js:examplefxn;test.js:examplefxn2;end;subgraph test2.js;test2.js:func;test2.js:func4;end;test.js --> test2.js:func;test.js --> test.js:examplefxn;";
 let diagramData = placeHolderGraphData;
 
 export const DiagramPage = () => {
@@ -17,6 +21,10 @@ export const DiagramPage = () => {
         const input = document.getElementById("directory-input").value;
         console.log(input);
         // todo: add backend logic to process the input
+        // const json_out = getFileStruc(input);
+        // const mermaid_data = parseToMermaid(json_out);
+        console.log(JSON.stringify(json_out));
+
         diagramData = placeHolderProcessedGraphData;
 
         // replace the graphs

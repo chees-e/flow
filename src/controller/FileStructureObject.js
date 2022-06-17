@@ -273,14 +273,14 @@ function assignFileFunction(path) {
             let loopList = [];
 
             callList = traverseNode(dec, path);
-            loopList = findForLoop(dec);
+            loopList = findForLoop(dec, path);
             const fxnObject = {fxnId: dec.id.name, calls: callList, loops: loopList};
             fxnList.push(fxnObject);
         } else if (dec.type == "VariableDeclaration" ) {
             for (let i = 0; i < dec.declarations.length; i++) {
                 if (dec.declarations[i].init && dec.declarations[i].init.type == "ArrowFunctionExpression") {
-                    let callList = traverseNode(dec.declarations[i]);
-                    let loopList = findForLoop(dec.declarations[i]);
+                    let callList = traverseNode(dec.declarations[i], path);
+                    let loopList = findForLoop(dec.declarations[i], path);
 
                     const fxnObject = {fxnId: dec.declarations[i].id.name, calls: callList, loops: loopList};
                     fxnList.push(fxnObject);
@@ -293,7 +293,7 @@ function assignFileFunction(path) {
             }
         } else {
             let callList = traverseNode(dec, path);
-            let loopList = findForLoop(dec);
+            let loopList = findForLoop(dec, path);
             fxnCalls = fxnCalls.concat(callList);
             fxnLoops = fxnLoops.concat(loopList)
         }

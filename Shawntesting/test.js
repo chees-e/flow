@@ -1,7 +1,11 @@
 
-const myfile = require("./test2");
+// const myfile = require("./test2");
 
-console.log(myfile.myfunction(10));
+// console.log(myfile.myfunction(10));
+
+const {myfunction} = require("./test2");
+
+let x = myfunction(10);
 
 const exampleVar = 1;
 

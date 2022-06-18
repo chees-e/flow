@@ -8,7 +8,8 @@ mermaid.initialize({
         'primaryColor': '#EEA9A9',
         'primaryTextColor': '#ffffff',
         'secondaryColor': '#FEDFE1',
-        'fontFamily': 'arial'
+        'fontFamily': 'arial',
+        'lineColor': '#E87A90',
     }
 });
 

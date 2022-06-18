@@ -2,21 +2,22 @@ import React from "react";
 import {Button} from "@mui/material";
 import {withStyles} from "@mui/styles";
 
-const StyledUploadButton = withStyles({
+const StyledGoButton = withStyles({
     root: {
         alignItems: "center",
         justifyContent: "center",
         height: "40px",
-        width: "100px",
+        width: "auto",
+        background: "black",
         padding: "0 35px",
         boxSizing: "border-box",
         borderRadius: 0,
     },
 })(Button);
 
-export function UploadButton(props) {
+export function GoButton(props) {
     const {handleClick} = props;
     return (
-        <StyledUploadButton variant="contained" onClick={handleClick}>Upload</StyledUploadButton>
+        <StyledGoButton variant="contained" style={{background: "#EEA9A9", color: "#ffffff"}} onClick={handleClick}>Go</StyledGoButton>
     );
 }

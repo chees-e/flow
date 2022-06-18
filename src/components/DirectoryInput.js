@@ -30,15 +30,16 @@ const StyledDirectoryTextField = withStyles({
 export function DirectoryInput() {
     const classes = style();
     return (
-        <StyledDirectoryTextField className={classes.directoryInput}
-                   id="directory-input"
-                   hiddenLabel
-                   variant="outlined"
-                   placeholder="Enter a path to get started"
-                   InputProps={{
-                       style: {
-                           color: "white"
-                       }
-                   }}/>
+        // <StyledDirectoryTextField className={classes.directoryInput}
+        //            id="directory-input"
+        //            hiddenLabel
+        //            variant="outlined"
+        //            placeholder="Enter a path to get started"
+        //            InputProps={{
+        //                style: {
+        //                    color: "white"
+        //                }
+        //            }}/>
+        <input id="directory-input"  directory="" webkitdirectory="" type="file" />
     );
 }

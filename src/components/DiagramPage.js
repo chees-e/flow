@@ -6,9 +6,8 @@ import {UploadButton} from "./UploadButton";
 import {DirectoryInput} from "./DirectoryInput";
 import mermaid from "mermaid";
 
-
 // fs doesn't work with react
-// const {getFileStruc, parseToMermaid} = require("../controller/FileStructureObject.js");
+import {getMermaidString} from "../controller/FileStructureObject2.js";
 
 const placeHolderGraphData = "flowchart TD;id1(Enter a path to get started)";
 const placeHolderProcessedGraphData = "flowchart LR;subgraph esp.js;end;subgraph test.js;test.js:examplefxn;test.js:examplefxn2;end;subgraph test2.js;test2.js:func;test2.js:func4;end;test.js --> test2.js:func;test.js --> test.js:examplefxn;";
@@ -17,15 +16,8 @@ let diagramData = placeHolderGraphData;
 export const DiagramPage = () => {
     const classes = style();
 
-    function onUpload() {
-        const input = document.getElementById("directory-input").value;
-        console.log(input);
-        // todo: add backend logic to process the input
-        // const json_out = getFileStruc(input);
-        // const mermaid_data = parseToMermaid(json_out);
-        console.log(JSON.stringify(json_out));
-
-        diagramData = placeHolderProcessedGraphData;
+    function displayDiagram(data) {
+        diagramData = data;
 
         // replace the graphs
         const topDiagram = document.getElementById("diagram");
@@ -34,6 +26,53 @@ export const DiagramPage = () => {
         };
 
         mermaid.render("preparedScheme", diagramData, replaceDiagram);
+    }
+
+    function onUpload() {
+        const input = document.getElementById("directory-input").files;
+        console.log(input);
+        // todo: add backend logic to process the input
+        // const json_out = getFileStruc(input);
+        // const mermaid_data = parseToMermaid(json_out);
+        // console.log(JSON.stringify(json_out));
+
+        let file_data = []; 
+        let file_names = [];
+        let reader = new FileReader();
+        let index = 0;
+        reader.addEventListener("load", () => {
+            file_data.push(reader.result);
+        }, false);
+
+        reader.addEventListener("loadend", () => {
+            index = index + 1;
+            while (input[index].type !== "text/javascript" && index < input.length - 1) {
+                index = index + 1; // only reading js files
+            }
+            if (index < input.length - 1) {
+                file_names.push(input[index].name);
+                reader.readAsText(input[index]);
+            } else {
+                console.log(file_data);
+                console.log(file_names);
+                // let functionArg = parse("console.log('hello word')", {ecmaFeatures: {jsx: true}, ecmaVersion: "latest", sourceType: "module", range: true});
+                // console.log(functionArg)
+                getMermaidString(file_names, file_data).then(out => {
+                    console.log(out);
+                    displayDiagram(out);
+                })
+            }
+        })
+    
+        if (input.length > 1) {
+            while (input[index].type !== "text/javascript" && index < input.length - 1) {
+                index = index + 1; // only reading js files
+            }
+            if (index < input.length - 1) {
+                file_names.push(input[index].name);
+                reader.readAsText(input[index]);
+            }
+        }
     }
 
     return (

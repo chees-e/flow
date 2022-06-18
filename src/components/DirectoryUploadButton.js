@@ -15,7 +15,8 @@ const StyledDirectoryUploadButton = withStyles({
 })(Button);
 
 
-export function DirectoryUploadButton() {
+export function DirectoryUploadButton(props) {
+    const {handleChange} = props;
     return (
         <div>
                 <StyledDirectoryUploadButton
@@ -30,6 +31,7 @@ export function DirectoryUploadButton() {
                         webkitdirectory=""
                         type="file"
                         style={{display: 'none'}}
+                        onChange={handleChange}
                     />
                 </StyledDirectoryUploadButton>
         </div>

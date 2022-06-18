@@ -15,17 +15,12 @@ export const theme = createTheme({
         fontFamily: [
             'Helvetica Neue'
         ],
-    }
+    },
 });
 
 export const style = makeStyles({
     diagram: {
-        marginTop: "6em"
-    },
-    directoryInput: {
-        width: "600px",
-        height: "40px",
-        outlineColor: "white"
+        marginTop: "4em"
     },
     divider: {
         backgroundColor: "white"

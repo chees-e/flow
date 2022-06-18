@@ -11,13 +11,20 @@ const StyledGoButton = withStyles({
         background: "black",
         padding: "0 35px",
         boxSizing: "border-box",
-        borderRadius: 0,
+        borderRadius: 0
     },
 })(Button);
 
 export function GoButton(props) {
-    const {handleClick} = props;
+    const {handleClick, disabled} = props;
     return (
-        <StyledGoButton variant="contained" style={{background: "#EEA9A9", color: "#ffffff"}} onClick={handleClick}>Go</StyledGoButton>
+        <StyledGoButton id="go-button"
+                        variant="contained"
+                        style={{background: "#EEA9A9", color: "#ffffff"}}
+                        onClick={handleClick}
+                        disabled={disabled}
+        >
+            Go
+        </StyledGoButton>
     );
 }

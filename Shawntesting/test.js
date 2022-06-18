@@ -3,7 +3,7 @@
 
 // console.log(myfile.myfunction(10));
 
-const {myfunction} = require("./test2");
+const {myfunction, myfunction4} = require("./test2");
 
 let x = myfunction(10);
 
@@ -13,7 +13,7 @@ const examplefxn = (args) => {
     return args + 1;
 },
 examplefxn2 = (args) => {
-    return args + 1;
+    return args + myfunction4();
 };
 
 console.log(examplefxn(exampleVar));

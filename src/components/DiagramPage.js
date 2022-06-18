@@ -7,7 +7,7 @@ import {DirectoryInput} from "./DirectoryInput";
 import mermaid from "mermaid";
 
 // fs doesn't work with react
-import {getMermaidString} from "../controller/FileStructureObject2.js";
+import {getMermaidString} from "../controller/FileStructureObject.js";
 
 const placeHolderGraphData = "flowchart TD;id1(Enter a path to get started)";
 const placeHolderProcessedGraphData = "flowchart LR;subgraph esp.js;end;subgraph test.js;test.js:examplefxn;test.js:examplefxn2;end;subgraph test2.js;test2.js:func;test2.js:func4;end;test.js --> test2.js:func;test.js --> test.js:examplefxn;";
@@ -46,10 +46,10 @@ export const DiagramPage = () => {
 
         reader.addEventListener("loadend", () => {
             index = index + 1;
-            while (input[index].type !== "text/javascript" && index < input.length - 1) {
+            while (index < input.length && input[index].type !== "text/javascript") {
                 index = index + 1; // only reading js files
             }
-            if (index < input.length - 1) {
+            if (index < input.length) {
                 file_names.push(input[index].name);
                 reader.readAsText(input[index]);
             } else {
@@ -64,11 +64,11 @@ export const DiagramPage = () => {
             }
         })
     
-        if (input.length > 1) {
-            while (input[index].type !== "text/javascript" && index < input.length - 1) {
+        if (input.length > 0) {
+            while (index < input.length && input[index].type !== "text/javascript") {
                 index = index + 1; // only reading js files
             }
-            if (index < input.length - 1) {
+            if (index < input.length) {
                 file_names.push(input[index].name);
                 reader.readAsText(input[index]);
             }

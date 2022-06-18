@@ -13,13 +13,14 @@ module.exports.func2 = () => {
 // forbidden: function aliasing
 const func3 = func;
 
+// forbidden: declaration after exports
+function func4() {
+    return 1;
+}
+
 // This overrides the privious exports
 module.exports = {
     myfunction : func,
     myfunction4 : func4
 }
 
-// forbidden: declaration after exports
-function func4() {
-    return;
-}

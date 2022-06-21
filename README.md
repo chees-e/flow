@@ -4,7 +4,7 @@
 The call graph visualization tool flow is designed to help users easily visualize the relationship between JavaScript functions and files so users can familiarize themselves with a new code base quickly or find out which part(s) of the program needs optimization.
 
 ---
-![flow](flow.png)
+![flow](images/flow.png)
 
 ## Features
 flow supports the analysis of the following types of function declarations and dependency injection statements:

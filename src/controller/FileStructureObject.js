@@ -282,7 +282,7 @@ function getMermaidString (file_names, file_data) {
 // example usage
 // let res;
 
-// res = getFileStruc("..\\..\\Shawntesting\\");
+// res = getFileStruc("..\\..\\test\\");
 // console.log("Declarations: " + JSON.stringify(fxnDec));
 // console.log("Exports: " + JSON.stringify(fxnExports));
 // console.log("Results: " + JSON.stringify(res));
